@@ -1,0 +1,175 @@
+CAPL
+
+---------------------------------------------------------------------------------------------------------
+Sending CAN Messages:
+
+on start {
+  output(10); // Sends a message with the identifier 10 every 500 milliseconds
+}
+
+on timer output {
+  message myMessage 0x100; // Define a message with standard identifier 0x100
+  myMessage.byte(0) = 0x55; // Set the first byte of the message
+  output(myMessage); // Send the message
+  setTimer(output, 500); // Set the timer to trigger again after 500 ms
+}
+---------------------------------------------------------------------------------------------------------
+Reacting to Incoming Messages:
+on message 0x200 {
+  write("Message 0x200 received.");
+  // Additional code to process the message
+}
+---------------------------------------------------------------------------------------------------------
+Simulating Fault Conditions:
+Simulate fault conditions on the CAN bus, such as a short circuit or open connection.
+
+on key 'x' {
+  outputError(FrameError); // Simulate a frame error on the bus
+  write("Simulating frame error.");
+}
+---------------------------------------------------------------------------------------------------------
+Data Logging:
+Log data to a file for later analysis.
+
+on message * {
+  writeln(logFile, this.time, " ", this.id, " ", this.dlc, " ", this.byte(0));
+}
+---------------------------------------------------------------------------------------------------------
+Automating Test Cases:
+Automate the sending of messages and the evaluation of received messages to perform ECU testing.
+
+on start {
+  message testMessage 0x123;
+  testMessage.byte(0) = 0xAB;
+  output(testMessage);
+}
+
+on message 0x123 {
+  if(this.byte(0) == 0xAB) {
+    write("Test passed: Correct response received.");
+  } else {
+    write("Test failed: Incorrect response received.");
+  }
+}
+---------------------------------------------------------------------------------------------------------
+Environment Simulation:
+Simulate other devices or network traffic that an ECU expects to see in a real-world scenario.
+
+on timer generateTraffic {
+  message heartbeat 0x01;
+  heartbeat.byte(0) = 0xFF; // Example heartbeat signal
+  output(heartbeat);
+  setTimer(generateTraffic, 1000); // Simulate heartbeat every 1000 ms
+}
+---------------------------------------------------------------------------------------------------------
+Handling Events Based on Time:
+Execute code at precise intervals.
+
+on timer myTimer {
+  write("Timer event occurred.");
+  // Other timed operations
+}
+
+on start {
+  setTimer(myTimer, 1000); // Triggers the timer event after 1000 ms
+}
+---------------------------------------------------------------------------------------------------------
+Manipulating Signals within Messages:
+Functions to read and set signal values directly:easier than manipulating raw message data.
+
+on message EngineStatus {
+  int rpm = getSignal(EngineStatus.Rpm);
+  if (rpm > 3000) {
+    write("Engine RPM is above 3000: %d", rpm);
+  }
+}
+---------------------------------------------------------------------------------------------------------
+Dynamic Message Handling:
+Handle messages dynamically without the need to specify message IDs beforehand. 
+
+on message * {
+  if (this.id >= 0x100 && this.id <= 0x200) {
+    write("Message with ID in the range of 0x100 to 0x200 received.");
+  }
+}
+---------------------------------------------------------------------------------------------------------
+Simulating a Sequence of Events:
+Simulate a sequence of events that occur in response to certain triggers, such as a car ignition sequence.
+
+on start {
+  setTimer(startIgnition, 500); // Begin ignition sequence in 500 ms
+}
+
+on timer startIgnition {
+  // Simulate various ECUs starting up
+  output(IgnitionOnMessage);
+  setTimer(startEngine, 1000); // Start engine in 1000 ms
+}
+
+on timer startEngine {
+  output(EngineStartMessage);
+  // Further actions
+}
+---------------------------------------------------------------------------------------------------------
+Conditionally Sending Messages:
+Decide to send messages based on certain conditions.
+
+on key 's' {
+  if (sensorValue > threshold) {
+    output(SensorAlertMessage);
+  }
+}
+
+---------------------------------------------------------------------------------------------------------
+Interacting with Variables and Events:
+Define global variables to keep track of state and interact with them on various events.
+
+
+int errorCount;
+
+on message 0xABC {
+  if (this.byte(0) == 0xFF) {
+    errorCount++;
+    if (errorCount > 10) {
+      write("Error count exceeded 10.");
+    }
+  }
+}
+---------------------------------------------------------------------------------------------------------
+Using Custom Functions:
+Define custom functions for code reuse and clarity.
+
+
+void checkEngineTemp() {
+  int temp = getSignal(EngineStatus.Temperature);
+  if (temp > maxTemp) {
+    write("Engine temperature too high!");
+    // Additional logic
+  }
+}
+
+on message EngineStatus {
+  checkEngineTemp();
+}
+---------------------------------------------------------------------------------------------------------
+Timing Analysis:
+Perform timing analysis by recording the time when certain events occur and comparing them to expected values.
+
+
+timer startOfMessage;
+
+on message 0x123 {
+  if (isTimerActive(startOfMessage)) {
+    write("Time since last message: %d ms", elapsedTime(startOfMessage));
+    cancelTimer(startOfMessage);
+  }
+  setTimer(startOfMessage, 1000);
+}
+---------------------------------------------------------------------------------------------------------
+Interactive Testing with Key Inputs:
+Respond to user inputs, such as key presses, to interactively control the simulation.
+
+on key 'd' {
+  output(DiagnosticRequestMessage);
+  write("Diagnostic request sent.");
+}
